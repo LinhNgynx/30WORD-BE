@@ -37,18 +37,19 @@ namespace GeminiTest.Controllers
             var wordList = selectedMeanings.Select(kv => new { Word = kv.Key, VietnameseMeaning = kv.Value }).ToList();
 
             string prompt = $@"
-For each word provided, return a JSON array where:
+For each word provided along with its Vietnamese meaning, return a JSON array where:
 - The 'word' field contains the original word.
-- The 'phonetic' field contains the IPA transcription.
-- The 'part_of_speech' field contains the correct part of speech.
-- The 'english_meaning' field contains the meaning that corresponds to the part of speech.
-- The 'vietnamese_meaning' field contains the Vietnamese meaning, which must match the given part of speech exactly.
-- The 'example' field contains an example sentence using the word in English.
+- The 'part_of_speech' field corresponds to the given Vietnamese meaning.
+- The 'english_meaning' field provides the correct English definition that matches the given Vietnamese meaning.
+- The 'phonetic' field contains the IPA transcription of the word.
+- The 'vietnamese_meaning' field remains unchanged.
+- The 'example' field contains an English sentence using the word appropriately in the given part of speech.
 
 **Important:**
-- Do not change the part of speech of the given words.
-- Ensure the Vietnamese meaning matches the correct part of speech.
-- If a word has multiple meanings across different parts of speech, return only the meaning that corresponds to the input word.
+- Do not change the Vietnamese meaning.
+- Determine the correct part of speech based on the Vietnamese meaning.
+- Ensure the English meaning aligns with the given Vietnamese meaning.
+- Keep the word order the same as in the input.
 
 ### Example Input:
 [
@@ -60,17 +61,17 @@ For each word provided, return a JSON array where:
 [
   {{
     ""word"": ""struggle"",
-    ""phonetic"": ""/ˈstrʌɡ.əl/"",
     ""part_of_speech"": ""noun"",
     ""english_meaning"": ""a difficult effort or fight"",
+    ""phonetic"": ""/ˈstrʌɡ.əl/"",
     ""vietnamese_meaning"": ""sự đấu tranh"",
     ""example"": ""The struggle for freedom is never easy.""
   }},
   {{
     ""word"": ""run"",
-    ""phonetic"": ""/rʌn/"",
     ""part_of_speech"": ""verb"",
     ""english_meaning"": ""to move quickly on foot"",
+    ""phonetic"": ""/rʌn/"",
     ""vietnamese_meaning"": ""chạy"",
     ""example"": ""She runs every morning in the park.""
   }}

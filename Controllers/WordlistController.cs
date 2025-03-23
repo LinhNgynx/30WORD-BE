@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
+using System.Text;
 
 namespace GeminiTest.Controllers
 {
@@ -27,6 +28,7 @@ namespace GeminiTest.Controllers
         {
             try
             {
+                
                 if (words == null || words.Count == 0)
                 {
                     return BadRequest(new { message = "Wordlist cannot be empty" });

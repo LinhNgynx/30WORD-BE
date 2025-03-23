@@ -34,9 +34,11 @@ For each word provided, return a JSON array with:
 - The same 'id' as provided in input (do NOT generate a new ID)
 - word
 - phonetic transcription (IPA notation preferred)
-- 3 popular meanings in Vietnamese(if it has many meanings), 1 meaning if it has only one meaning
-- part of speech for each meaning
-If a word is misspelled or invalid or not in English, return an error message with the word's suggestion or a message stating it's invalid.
+- Up to 3 distinct meanings in Vietnamese, ensuring each meaning is phrased to make its part of speech clear.
+- Clearly differentiate meanings, especially when a word functions as different parts of speech.
+- part of speech for each meaning.
+
+If a word is misspelled, invalid, or not in English, return an error message with the word's suggestion or a message stating it's invalid.
 
 Input words:
 {JsonSerializer.Serialize(request.Words, new JsonSerializerOptions { WriteIndented = true })}
@@ -52,15 +54,30 @@ Response format:
     ""meanings"": [
       {{
         ""part_of_speech"": ""noun"",
-        ""vietnamese_meaning"": ""một dạng hoặc mô hình đại diện""
+        ""vietnamese_meaning"": ""Một vật hoặc hành động được sử dụng để chứng minh hoặc minh họa điều gì đó.""
       }},
       {{
         ""part_of_speech"": ""noun"",
-        ""vietnamese_meaning"": ""một ví dụ điển hình của một cái gì đó""
+        ""vietnamese_meaning"": ""Một tình huống hoặc sự kiện thể hiện một mô hình phổ biến.""
       }},
       {{
         ""part_of_speech"": ""verb"",
-        ""vietnamese_meaning"": ""để phục vụ như một minh họa""
+        ""vietnamese_meaning"": ""Thể hiện hoặc minh họa một phẩm chất hoặc đặc điểm.""
+      }}
+    ]
+  }},
+  {{
+    ""id"": ""same as input"",
+    ""word"": ""northside"",
+    ""phonetic"": ""/ˈnɔːrθ.saɪd/"",
+    ""meanings"": [
+      {{
+        ""part_of_speech"": ""noun"",
+        ""vietnamese_meaning"": ""Khu vực hoặc vùng nằm ở phía bắc của một địa điểm nào đó.""
+      }},
+      {{
+        ""part_of_speech"": ""adjective"",
+        ""vietnamese_meaning"": ""Thuộc về hoặc liên quan đến khu vực phía bắc của một địa điểm nào đó.""
       }}
     ]
   }},
