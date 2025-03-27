@@ -25,5 +25,7 @@ namespace GeminiTest.Models
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         public List<Word> Words { get; set; } = new();
+
+        public int Progress { get; set; } = 1;
     }
 }

@@ -22,5 +22,7 @@ namespace GeminiTest.Models
         [ForeignKey("Wordlist")]
         public int WordlistId { get; set; }
         public Wordlist Wordlist { get; set; }
+
+        public List<Quiz> Quizzes { get; set; } = new();
     }
 }

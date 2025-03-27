@@ -11,6 +11,7 @@ namespace GeminiTest.Data
         public DbSet<Word> Words { get; set; }
         public DbSet<Wordlist> Wordlists { get; set; }
 
+        public DbSet<Quiz> Quizzes { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -28,6 +29,12 @@ namespace GeminiTest.Data
                 .WithMany(wl => wl.Words)
                 .HasForeignKey(w => w.WordlistId)
                 .OnDelete(DeleteBehavior.Cascade);
+            // Define relationship between Quiz and Word
+            modelBuilder.Entity<Quiz>()
+                 .HasOne(q => q.Word)
+                 .WithMany(w => w.Quizzes)
+                 .HasForeignKey(q => q.WordId)
+                 .OnDelete(DeleteBehavior.Cascade);
         }
 
     }

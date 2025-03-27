@@ -100,6 +100,7 @@ namespace GeminiTest.Controllers
                         name = wl.Name,
                         description = wl.Description,
                         createdAt = wl.CreatedAt,
+                        Progress = wl.Progress,
                         words = wl.Words.Select(w => new
                         {
                             w.Id,
@@ -193,6 +194,46 @@ namespace GeminiTest.Controllers
             }
         }
 
+        [HttpDelete("{wordlistId}/words/{wordId}")]
+        [Authorize]
+        public async Task<IActionResult> DeleteWord(int wordlistId, int wordId)
+        {
+            try
+            {
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value?.Trim();
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Unauthorized(new { message = "User not authenticated" });
+                }
+
+                // Fetch the wordlist with the matching user ID
+                var wordlist = await _context.Wordlists
+                    .Include(wl => wl.Words)
+                    .FirstOrDefaultAsync(wl => wl.Id == wordlistId && wl.UserId == userId);
+
+                if (wordlist == null)
+                {
+                    return NotFound(new { message = "Wordlist not found or does not belong to the user." });
+                }
+
+                // Find the specific word to delete
+                var word = wordlist.Words.FirstOrDefault(w => w.Id == wordId);
+                if (word == null)
+                {
+                    return NotFound(new { message = "Word not found in the wordlist." });
+                }
+
+                // Remove the word from the list
+                wordlist.Words.Remove(word);
+                await _context.SaveChangesAsync();
+
+                return Ok(new { message = "Word deleted successfully!" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An error occurred while deleting the word.", error = ex.Message });
+            }
+        }
 
     }
 }
