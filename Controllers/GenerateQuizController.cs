@@ -20,7 +20,7 @@ namespace GeminiTest.Controllers
             _apiKey = geminiSettings.Value.ApiKey;
             _logger = logger;
         }
-        [HttpPost("generate/meaningquiz")]
+        [HttpPost("generate/Meaning")]
         public async Task<IActionResult> GenerateContent([FromBody] GenerateQuizRequest request)
         {
             if (request.Words == null || request.Words.Count == 0)
@@ -33,7 +33,7 @@ Create a JSON array of quiz questions based on the given words and their meaning
 
 Each quiz question should follow this structure:
 - 'wordId': The original ID of the word.
-- 'question': A clear, engaging multiple-choice question about the word’s meaning.
+- 'question': A clear, engaging multiple-choice question about the word’s meaning, with an icon appearing immediately after the question mark.
 - 'options': A list of four possible answers, including the correct one.
 - 'correctAnswer': The correct answer.
 
@@ -45,6 +45,11 @@ Each quiz question should follow this structure:
   - Aligned with real-world misunderstandings or common mix-ups.
   - Different in concept from the correct answer while still making sense.
 
+**Rules for Icons:**
+- Use a relevant emoji or small image URL inline within the question.
+- The icon should appear immediately after the question mark.
+- If no relevant emoji exists, return an empty space.
+
 **Example Input:**
 [
   {{ ""id"": 407, ""wordText"": ""hot"", ""englishMeaning"": ""having a high degree of heat or a high temperature."" }},
@@ -55,7 +60,7 @@ Each quiz question should follow this structure:
 [
   {{
     ""wordId"": 407,
-    ""question"": ""What does the word 'hot' mean in this context?"",
+    ""question"": ""What does the word 'hot' mean in this context? 🔥"",
     ""options"": [
       ""having a high degree of heat or a high temperature."",
       ""a popular dance move from the 90s."",
@@ -66,7 +71,7 @@ Each quiz question should follow this structure:
   }},
   {{
     ""wordId"": 408,
-    ""question"": ""Which of the following best defines 'espresso'?"",
+    ""question"": ""Which of the following best defines 'espresso'? ☕"",
     ""options"": [
       ""coffee brewed by forcing hot water through finely ground coffee beans."",
       ""a strong alcoholic drink made from fermented wheat."",
@@ -81,6 +86,7 @@ Now, generate quizzes for the following words:
 
 {JsonSerializer.Serialize(request.Words, new JsonSerializerOptions { WriteIndented = true })}
 ";
+
 
 
 
@@ -131,7 +137,7 @@ Now, generate quizzes for the following words:
             }
         }
 
-        [HttpPost("generate/contextquiz")]
+        [HttpPost("generate/ContextUsage")]
         public async Task<IActionResult> GenerateContext([FromBody] GenerateQuizRequest request)
         {
             if (request.Words == null || request.Words.Count == 0)

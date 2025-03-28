@@ -34,7 +34,6 @@ namespace GeminiTest.Models
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-        public bool? IsCorrect { get; set; } = null;
 
         [NotMapped]
         public List<string> Options

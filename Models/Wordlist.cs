@@ -27,5 +27,11 @@ namespace GeminiTest.Models
         public List<Word> Words { get; set; } = new();
 
         public int Progress { get; set; } = 1;
+
+        public int HighestMeaningScore { get; set; } = 0;
+        public int LatestMeaningScore { get; set; } = 0;
+
+        public int HighestContextScore { get; set; } = 0;
+        public int LatestContextScore { get; set; } = 0;
     }
 }
