@@ -29,7 +29,7 @@ namespace GeminiTest.Controllers
             }
 
             string prompt = $@"
-Create a JSON array of quiz questions based on the given words and their meanings. 
+Create a JSON array of quiz questions based on the given words and their meanings.
 
 Each quiz question should follow this structure:
 - 'wordId': The original ID of the word.
@@ -37,55 +37,68 @@ Each quiz question should follow this structure:
 - 'options': A list of four possible answers, including the correct one.
 - 'correctAnswer': The correct answer.
 
-**Rules for Generating Options:**
-- The **correct meaning** should always be included.
-- The **three distractors** should be:
-  - Plausible but incorrect meanings.
-  - Unique across different words to avoid repetition.
-  - Aligned with real-world misunderstandings or common mix-ups.
-  - Different in concept from the correct answer while still making sense.
+---
 
-**Rules for Icons:**
-- Use a relevant emoji or small image URL inline within the question.
-- The icon should appear immediately after the question mark.
-- If no relevant emoji exists, return an empty space.
+### **✅ Rules for Generating Options:**
+✔ The **correct meaning** should always be included.  
+✔ The **three distractors** must:  
+  - Be plausible but **incorrect interpretations** of the word.  
+  - **Have similar meaning but still be clearly incorrect.**  
+  - **Match the length and structure** of the correct answer.  
+  - Avoid repeating choices across different questions.  
+✔ Do **NOT** make distractors too confusing—users should hesitate but **not be able to argue they are the same as the correct answer**.
 
-**Example Input:**
+---
+
+### **📌 Rules for Icons:**
+✔ Use a **relevant emoji** or small image URL inline within the question.  
+✔ The icon **must appear immediately** after the question mark.  
+✔ If no relevant emoji exists, return an empty space (`""`).  
+
+---
+
+### **🔥 Example Input:**
 [
-  {{ ""id"": 407, ""wordText"": ""hot"", ""englishMeaning"": ""having a high degree of heat or a high temperature."" }},
-  {{ ""id"": 408, ""wordText"": ""espresso"", ""englishMeaning"": ""coffee brewed by forcing hot water through finely ground coffee beans."" }}
+  {{ ""id"": 407, ""wordText"": ""meticulous"", ""englishMeaning"": ""showing great attention to detail; very careful and precise."" }},
+  {{ ""id"": 408, ""wordText"": ""fortuitous"", ""englishMeaning"": ""happening by chance, especially in a lucky way."" }},
 ]
 
-**Example Output:**
+---
+
+### **🎯 Example Output (with well-balanced options):**
 [
   {{
     ""wordId"": 407,
-    ""question"": ""What does the word 'hot' mean in this context? 🔥"",
+    ""question"": ""What does the word 'meticulous' mean? 🔍"",
     ""options"": [
-      ""having a high degree of heat or a high temperature."",
-      ""a popular dance move from the 90s."",
-      ""a moment of sudden realization or enlightenment."",
-      ""a type of deep-sea fish known for bioluminescence.""
+      ""Showing great attention to detail and precision."",
+      ""Being careful but sometimes missing small details."",
+      ""Having a strong passion for organization and structure."",
+      ""Following rules strictly without allowing flexibility.""
     ],
-    ""correctAnswer"": ""having a high degree of heat or a high temperature.""
+    ""correctAnswer"": ""Showing great attention to detail and precision.""
   }},
   {{
     ""wordId"": 408,
-    ""question"": ""Which of the following best defines 'espresso'? ☕"",
+    ""question"": ""Which of the following best defines 'fortuitous'? 🍀"",
     ""options"": [
-      ""coffee brewed by forcing hot water through finely ground coffee beans."",
-      ""a strong alcoholic drink made from fermented wheat."",
-      ""a small, single-engine aircraft used for short-distance flights."",
-      ""a method of writing used in ancient Greece.""
+      ""Happening by chance in a lucky or fortunate way."",
+      ""Being well-prepared for all possible outcomes."",
+      ""Occurring randomly without any beneficial effect."",
+      ""Having a strong instinct for making good decisions.""
     ],
-    ""correctAnswer"": ""coffee brewed by forcing hot water through finely ground coffee beans.""
+    ""correctAnswer"": ""Happening by chance in a lucky or fortunate way.""
   }}
 ]
 
-Now, generate quizzes for the following words:
+---
+
+🔥 **Now, generate quizzes for the following words, ensuring that incorrect choices have a similar length and structure, while remaining plausible but clearly incorrect:**  
 
 {JsonSerializer.Serialize(request.Words, new JsonSerializerOptions { WriteIndented = true })}
 ";
+
+
 
 
 
@@ -146,76 +159,74 @@ Now, generate quizzes for the following words:
             }
 
             string prompt = $@"
-You're designing a **fun and educational quiz** that helps users learn words by showing them in **real-world contexts**.  
+You're designing a **fun and educational quiz** that helps users learn words by challenging them to identify **the correct contextual usage**.  
 Each question should be structured as follows:
 
 - 'wordId': The original ID of the word.
-- 'question': A **natural, real-life situation where the word is used in context**.  
-- 'options': Four **plausible** multiple-choice answers, including the correct word and three well-thought-out distractors.
-- 'correctAnswer': The right word that **best fits the context**.
+- 'question': A sentence **asking which usage of the word is correct, with an icon appearing immediately after the question mark**.
+- 'options': Four **different sentences using the word**, but only one is correct,  with an icon appearing immediately after the option.
+- 'correctAnswer': The **correct sentence** that naturally and accurately uses the word but still engaging, funny and memorable.
 
 ---
 
 ### **✅ Rules for Generating Questions & Options**
-✔ **Make the context match the word's actual meaning.**  
-✔ **Ensure the correct word is the best possible fit.**  
-✔ **Make the incorrect choices (distractors):**  
-   - **Words that could almost fit but are slightly incorrect.**  
-   - **Words that people might mistakenly associate with the sentence.**  
-   - **Words that are completely out of place but funny.**  
+✔ **The correct sentence must use the word in a natural and meaningful way.**  
+✔ **Incorrect sentences (distractors) should:**  
+   - **Sound logical but have slight misuses.**  
+   - **Include common misconceptions about the word.**  
+   - **Be completely incorrect but still sound plausible, engaging, funny to help user feel comfortable.**  
+✔ **All answer choices should be similar in length and structure** to prevent users from picking the longest or shortest option.  
 ✔ **Avoid repeating distractors across different questions.**  
 
 ---
 
-### **📌 Example Input:**
+### **📌 Rules for Icons:**
+✔ Use a **relevant emoji** inline within the question.  
+✔ The icon **must appear immediately** after the question mark.  
+✔ Each answer choice **must have an emoji at the end**, related to its context.  
+✔ If no relevant emoji exists, return an empty space (`""`).  
+
+
+---
+
+### **🔥 Example Input:**
 [
-  {{ ""id"": 407, ""wordText"": ""hot"", ""englishMeaning"": ""having a high degree of heat or a high temperature."" }},
-  {{ ""id"": 408, ""wordText"": ""espresso"", ""englishMeaning"": ""coffee brewed by forcing hot water through finely ground coffee beans."" }},
-  {{ ""id"": 409, ""wordText"": ""exhausted"", ""englishMeaning"": ""extremely tired or worn out."" }}
+  {{ ""id"": 407, ""wordText"": ""meticulous"", ""englishMeaning"": ""showing great attention to detail; very careful and precise."" }},
+  {{ ""id"": 408, ""wordText"": ""fortuitous"", ""englishMeaning"": ""happening by chance, especially in a lucky way."" }}
 ]
 
 ---
 
-### **🔥 Example Output:**
+### **🎯 Example Output (Funny & Engaging with Icons):**
 [
   {{
     ""wordId"": 407,
-    ""question"": ""The sun was shining directly on the black car, making its surface so ___ that you could almost fry an egg on it."",
+    ""question"": ""Which sentence correctly uses the word 'meticulous'? 🧐"",
     ""options"": [
-      ""hot"",
-      ""cold"",
-      ""soft"",
-      ""bright""
+      ""She was meticulous, organizing her sock drawer by color, size, and sock personality. 🧦"",   
+      ""He was meticulous about eating and inhaled his burger in two bites. 🍔"",  
+      ""She was meticulous in her strategy to randomly throw clothes in her suitcase. 🎒"",  
+      ""He was meticulous, making sure to always leave a mess behind. 💥""
     ],
-    ""correctAnswer"": ""hot""
+    ""correctAnswer"": ""She was meticulous, organizing her sock drawer by color, size, and sock personality. 🧦""
   }},
   {{
     ""wordId"": 408,
-    ""question"": ""After pulling an all-nighter for her final exam, Sarah walked into the café and ordered a double shot of ___. She needed all the energy she could get."",
+    ""question"": ""Which sentence correctly uses the word 'fortuitous'? 🍀"",
     ""options"": [
-      ""espresso"",
-      ""orange juice"",
-      ""lemonade"",
-      ""cereal""
+      ""It was fortuitous that she found a $20 bill on the ground as she was craving pizza. 🍕"",  
+      ""He was fortuitous and predicted the winning lottery numbers using science. 🔮"",  
+      ""The chef was fortuitous, blindly adding salt instead of sugar. 🧂"",  
+      ""His fortuitous speech was 100% scripted and rehearsed for weeks. 🎤""
     ],
-    ""correctAnswer"": ""espresso""
-  }},
-  {{
-    ""wordId"": 409,
-    ""question"": ""After running a marathon, Jake collapsed on the grass and said, 'I don’t think I can move another inch—I’m completely ___.'"",
-    ""options"": [
-      ""exhausted"",
-      ""excited"",
-      ""bored"",
-      ""relaxed""
-    ],
-    ""correctAnswer"": ""exhausted""
+    ""correctAnswer"": ""It was fortuitous that she found a $20 bill on the ground as she was craving pizza. 🍕""
   }}
 ]
 
+
 ---
 
-🔥 **Now, generate quizzes for these words, making sure the missing word accurately represents its English meaning in a fun, engaging, and real-world context:**  
+🔥 **Now, generate quizzes for these words, ensuring that all answer choices have a similar length and structure while keeping the incorrect ones subtly misleading. The correct answer should match the word’s meaning precisely, while the distractors should follow the rules of plausible but incorrect usage.**  
 
 {JsonSerializer.Serialize(request.Words, new JsonSerializerOptions { WriteIndented = true })}
 ";

@@ -30,65 +30,43 @@ public class GeminiController : ControllerBase
         }
 
         string prompt = $@"
-For each word provided, return a JSON array with:
-- The same 'id' as provided in input (do NOT generate a new ID)
-- word
-- phonetic transcription (IPA notation preferred)
-- Up to 3 distinct meanings in Vietnamese, ensuring each meaning is phrased to make its part of speech clear.
-- Clearly differentiate meanings, especially when a word functions as different parts of speech.
-- part of speech for each meaning.
+For each word, return a JSON array with:
+- The **same 'id'** as in the input (do **not** generate a new ID).
+- **word** and **phonetic transcription** (IPA notation preferred).
+- **Up to 3 distinct Vietnamese meanings**, each labeled with its **part of speech**.
+- Ensure meanings are short but still indicate **the word’s function** (e.g., noun, verb, adjective).
+- If the word has multiple parts of speech, provide separate meanings for each.
+- If the word is misspelled, invalid, or non-English, return an **error message** with a suggested correction or a note stating it's invalid.
 
-If a word is misspelled, invalid, or not in English, return an error message with the word's suggestion or a message stating it's invalid.
-
-Input words:
+**Input words:**  
 {JsonSerializer.Serialize(request.Words, new JsonSerializerOptions { WriteIndented = true })}
 
-Ensure that the output JSON maintains the same order and IDs as the input.
-
-Response format:
+**Response format:**
 [
   {{
-    ""id"": ""same as input"",
+    ""id"": 1,
     ""word"": ""example"",
     ""phonetic"": ""/ɪɡˈzæm.pəl/"",
     ""meanings"": [
-      {{
-        ""part_of_speech"": ""noun"",
-        ""vietnamese_meaning"": ""Một vật hoặc hành động được sử dụng để chứng minh hoặc minh họa điều gì đó.""
-      }},
-      {{
-        ""part_of_speech"": ""noun"",
-        ""vietnamese_meaning"": ""Một tình huống hoặc sự kiện thể hiện một mô hình phổ biến.""
-      }},
-      {{
-        ""part_of_speech"": ""verb"",
-        ""vietnamese_meaning"": ""Thể hiện hoặc minh họa một phẩm chất hoặc đặc điểm.""
-      }}
+      {{ ""part_of_speech"": ""noun"", ""vietnamese_meaning"": ""Ví dụ minh họa"" }},
+      {{ ""part_of_speech"": ""noun"", ""vietnamese_meaning"": ""Mẫu hình phổ biến"" }},
+      {{ ""part_of_speech"": ""verb"", ""vietnamese_meaning"": ""Thể hiện đặc điểm"" }}
     ]
   }},
   {{
-    ""id"": ""same as input"",
+    ""id"": 2,
     ""word"": ""northside"",
     ""phonetic"": ""/ˈnɔːrθ.saɪd/"",
     ""meanings"": [
-      {{
-        ""part_of_speech"": ""noun"",
-        ""vietnamese_meaning"": ""Khu vực hoặc vùng nằm ở phía bắc của một địa điểm nào đó.""
-      }},
-      {{
-        ""part_of_speech"": ""adjective"",
-        ""vietnamese_meaning"": ""Thuộc về hoặc liên quan đến khu vực phía bắc của một địa điểm nào đó.""
-      }}
+      {{ ""part_of_speech"": ""noun"", ""vietnamese_meaning"": ""Khu phía bắc"" }},
+      {{ ""part_of_speech"": ""adjective"", ""vietnamese_meaning"": ""Thuộc khu phía bắc"" }}
     ]
   }},
   {{
-    ""id"": ""same as input"",
+    ""id"": 3,
     ""word"": ""mispeeledword"",
     ""meanings"": [
-      {{
-        ""part_of_speech"": ""N/A"",
-        ""vietnamese_meaning"": ""Từ không hợp lệ. Ý bạn có phải là: 'misspelledword'? ""
-      }}
+      {{ ""part_of_speech"": ""N/A"", ""vietnamese_meaning"": ""Không hợp lệ. Có phải bạn muốn: 'misspelledword'?"" }}
     ]
   }}
 ]

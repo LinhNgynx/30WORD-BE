@@ -38,42 +38,50 @@ namespace GeminiTest.Controllers
 
             string prompt = $@"
 For each word provided along with its Vietnamese meaning, return a JSON array where:
-- The 'word' field contains the original word.
-- The 'part_of_speech' field corresponds to the given Vietnamese meaning.
-- The 'english_meaning' field provides the correct English definition that matches the given Vietnamese meaning.
-- The 'phonetic' field contains the IPA transcription of the word.
-- The 'vietnamese_meaning' field remains unchanged.
-- The 'example' field contains an English sentence using the word appropriately in the given part of speech.
+- 'word' contains the original word.
+- 'part_of_speech' is inferred from the Vietnamese meaning.
+- 'english_meaning' is a **concise, summarized definition** that accurately matches the given Vietnamese meaning.
+- 'phonetic' contains the IPA transcription.
+- 'vietnamese_meaning' remains unchanged.
+- 'example' provides a natural English sentence using the word correctly in its given part of speech.
 
-**Important:**
+**Important Rules:**
 - Do not change the Vietnamese meaning.
-- Determine the correct part of speech based on the Vietnamese meaning.
-- Ensure the English meaning aligns with the given Vietnamese meaning.
+- Ensure the **English meaning is clear, precise, and concise** (not too long, but meaningful).
 - Keep the word order the same as in the input.
 
 ### Example Input:
 [
-  {{ ""word"": ""struggle"", ""vietnamese_meaning"": ""sự đấu tranh"" }},
-  {{ ""word"": ""run"", ""vietnamese_meaning"": ""chạy"" }}
+  {{ ""word"": ""comprehensive"", ""vietnamese_meaning"": ""toàn diện"" }},
+  {{ ""word"": ""negligence"", ""vietnamese_meaning"": ""sự cẩu thả"" }},
+  {{ ""word"": ""exaggerate"", ""vietnamese_meaning"": ""phóng đại"" }}
 ]
 
 ### Example Output:
 [
   {{
-    ""word"": ""struggle"",
-    ""part_of_speech"": ""noun"",
-    ""english_meaning"": ""a difficult effort or fight"",
-    ""phonetic"": ""/ˈstrʌɡ.əl/"",
-    ""vietnamese_meaning"": ""sự đấu tranh"",
-    ""example"": ""The struggle for freedom is never easy.""
+    ""word"": ""comprehensive"",
+    ""part_of_speech"": ""adjective"",
+    ""english_meaning"": ""covering all aspects of something"",
+    ""phonetic"": ""/ˌkɒm.prɪˈhen.sɪv/"",
+    ""vietnamese_meaning"": ""toàn diện"",
+    ""example"": ""The report provides a comprehensive analysis of the issue.""
   }},
   {{
-    ""word"": ""run"",
+    ""word"": ""negligence"",
+    ""part_of_speech"": ""noun"",
+    ""english_meaning"": ""failure to take proper care"",
+    ""phonetic"": ""/ˈnɛɡ.lɪ.dʒəns/"",
+    ""vietnamese_meaning"": ""sự cẩu thả"",
+    ""example"": ""His negligence led to a serious accident.""
+  }},
+  {{
+    ""word"": ""exaggerate"",
     ""part_of_speech"": ""verb"",
-    ""english_meaning"": ""to move quickly on foot"",
-    ""phonetic"": ""/rʌn/"",
-    ""vietnamese_meaning"": ""chạy"",
-    ""example"": ""She runs every morning in the park.""
+    ""english_meaning"": ""to make something seem bigger than it is"",
+    ""phonetic"": ""/ɪɡˈzædʒ.ə.reɪt/"",
+    ""vietnamese_meaning"": ""phóng đại"",
+    ""example"": ""She tends to exaggerate her achievements.""
   }}
 ]
 
@@ -83,6 +91,7 @@ Now, process the following words:
 
 Ensure the output JSON maintains the same order as the input.
 ";
+
 
 
             var requestBody = new
