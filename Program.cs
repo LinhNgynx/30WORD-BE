@@ -9,6 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging; 
 using static GeminiController;
+using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -20,6 +21,7 @@ builder.Logging.AddConsole(); // Add Console logging
 builder.Logging.AddDebug();   // Add Debug logging
 // ? Register necessary services
 builder.Services.AddControllers();
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.Configure<IdentityOptions>(options =>
 {

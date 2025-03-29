@@ -193,7 +193,52 @@ namespace GeminiTest.Controllers
                 return StatusCode(500, new { message = "An error occurred while deleting the wordlist.", error = ex.Message });
             }
         }
+        [HttpGet("GetWordlistById/{wordlistId}")]
+        [Authorize]
+        public async Task<IActionResult> GetWordlistById(int wordlistId)
+        {
+            try
+            {
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value?.Trim();
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Unauthorized(new { message = "User not authenticated" });
+                }
 
+                var wordlist = await _context.Wordlists
+                    .Where(wl => wl.Id == wordlistId && wl.UserId == userId)
+                    .Select(wl => new
+                    {
+                        wordlistId = wl.Id,
+                        name = wl.Name,
+                        description = wl.Description,
+                        createdAt = wl.CreatedAt,
+                        Progress = wl.Progress,
+                        words = wl.Words.Select(w => new
+                        {
+                            w.Id,
+                            w.WordText,
+                            w.Phonetic,
+                            w.PartOfSpeech,
+                            w.EnglishMeaning,
+                            w.VietnameseMeaning,
+                            w.ExampleSentence
+                        }).ToList()
+                    })
+                    .FirstOrDefaultAsync();
+
+                if (wordlist == null)
+                {
+                    return NotFound(new { message = "Wordlist not found or does not belong to the user." });
+                }
+
+                return Ok(wordlist);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An error occurred while fetching the wordlist.", error = ex.Message });
+            }
+        }
         [HttpDelete("{wordlistId}/words/{wordId}")]
         [Authorize]
         public async Task<IActionResult> DeleteWord(int wordlistId, int wordId)

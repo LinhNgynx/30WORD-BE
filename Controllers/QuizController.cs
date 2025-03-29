@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
+using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 
 namespace GeminiTest.Controllers
@@ -126,7 +127,96 @@ namespace GeminiTest.Controllers
             }
         }
 
+        [HttpPost("submit")]
+        [Authorize]
+        public async Task<IActionResult> SubmitQuiz([FromBody] QuizSubmitDto dto)
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value?.Trim();
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized(new { message = "User not authenticated." });
+            }
+
+            var wordlist = await _context.Wordlists
+                .FirstOrDefaultAsync(w => w.Id == dto.WordlistId && w.UserId == userId);
+
+            if (wordlist == null)
+            {
+                return NotFound(new { message = "Wordlist not found or does not belong to the user." });
+            }
+
+            bool progressUpdated = false;
+            bool highestScoreUpdated = false;
+            int currentHighestScore = 0;
+            int progressThreshold = 0;
+
+            // ✅ Convert QuizType string to Enum
+            if (!Enum.TryParse<QuizType>(dto.QuizType, true, out QuizType quizType))
+            {
+                _logger.LogError($"Invalid QuizType received: {dto.QuizType}");
+                return BadRequest(new { message = $"Invalid quiz type: {dto.QuizType}. Allowed values: {string.Join(", ", Enum.GetNames(typeof(QuizType)))}" });
+            }
+
+
+
+            // ✅ Save the latest score (always)
+            if (quizType == QuizType.Meaning)
+            {
+                wordlist.LatestMeaningScore = dto.Score;
+                if (dto.Score > wordlist.HighestMeaningScore)
+                {
+                    wordlist.HighestMeaningScore = dto.Score;
+                    highestScoreUpdated = true;
+                }
+                currentHighestScore = wordlist.HighestMeaningScore;
+                progressThreshold = 1;
+            }
+            else if (quizType == QuizType.ContextUsage)
+            {
+                wordlist.LatestContextScore = dto.Score;
+                if (dto.Score > wordlist.HighestContextScore)
+                {
+                    wordlist.HighestContextScore = dto.Score;
+                    highestScoreUpdated = true;
+                }
+                currentHighestScore = wordlist.HighestContextScore;
+                progressThreshold = 2;
+            }
+
+            // ✅ Update progress if highest score exceeds 80 and matches the threshold
+            if (highestScoreUpdated && currentHighestScore > 80 && wordlist.Progress == progressThreshold)
+            {
+                wordlist.Progress++;
+                progressUpdated = true;
+            }
+
+            // ✅ Always save because latest score is updated
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                message = "Quiz score updated successfully",
+                progressUpdated,
+                newProgress = wordlist.Progress
+            });
+        }
+
+
+
+
     }
+    public class QuizSubmitDto
+    {
+        [Required]
+        public int WordlistId { get; set; }
+
+        [Required]
+        public string QuizType { get; set; }  // ✅ Use Enum instead of string
+
+        [Range(0, 100, ErrorMessage = "Score must be between 0 and 100.")]
+        public int Score { get; set; }  // ✅ Ensure valid score
+    }
+
 
     // Model matching API request format
     public class GeneratedQuiz
