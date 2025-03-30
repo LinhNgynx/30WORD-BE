@@ -159,34 +159,41 @@ Each quiz question should follow this structure:
             }
 
             string prompt = $@"
-You're designing a **fun and educational quiz** that helps users learn words by challenging them to identify **the correct contextual usage**.  
-Each question should be structured as follows:
+### **📚 Word Usage Quiz Generator**  
+You're creating a **fun yet educational quiz** to help users master word usage through multiple-choice questions.  
 
-- 'wordId': The original ID of the word.
-- 'question': A sentence **asking which usage of the word is correct, with an icon appearing immediately after the question mark**.
-- 'options': Four **different sentences using the word**, but only one is correct,  with an icon appearing immediately after the option.
-- 'correctAnswer': The **correct sentence** that naturally and accurately uses the word but still engaging, funny and memorable.
+Each question should be structured as follows:  
 
----
-
-### **✅ Rules for Generating Questions & Options**
-✔ **The correct sentence must use the word in a natural and meaningful way.**  
-✔ **Incorrect sentences (distractors) should:**  
-   - **Sound logical but have slight misuses.**  
-   - **Include common misconceptions about the word.**  
-   - **Be completely incorrect but still sound plausible, engaging, funny to help user feel comfortable.**  
-✔ **All answer choices should be similar in length and structure** to prevent users from picking the longest or shortest option.  
-✔ **Avoid repeating distractors across different questions.**  
+- **wordId**: The unique ID of the word.  
+- **question**: A sentence **asking which usage of the word is correct**, with an **emoji appearing immediately after the question mark**.  
+- **options**: **Four sentences using the word**, but **only one is correct**.  
+- **correctAnswer**: The precise, naturally correct sentence that fits the word's meaning.  
 
 ---
 
-### **📌 Rules for Icons:**
-✔ Use a **relevant emoji** inline within the question.  
-✔ The icon **must appear immediately** after the question mark.  
-✔ Each answer choice **must have an emoji at the end**, related to its context.  
-✔ If no relevant emoji exists, return an empty space (`""`).  
+### **✅ Rules for Generating Questions & Options**  
 
+✔ **Correct Usage (1 Answer):**  
+   - The correct sentence must be **precise, natural, and NOT exaggerated or funny**.  
+   - It should **clearly convey the word's meaning** in a professional yet engaging way.  
+   - **Must be 10-15 words long** for consistency.  
 
+✔ **Incorrect Usage (3 Distractors):**  
+   - **Each incorrect option must misuse the word in a common but plausible way.**  
+   - **Can be humorous but should sound like something a learner might mistakenly believe.**  
+   - **Each distractor should follow a different type of mistake:**
+     - A **slightly wrong meaning** that seems close but is incorrect.
+     - A **completely incorrect use** that still sounds grammatically correct.
+     - A **misunderstanding of the word’s function** (e.g., using a noun as a verb).  
+   - **Must be 10-15 words long** (same length as the correct answer).  
+   - **Avoid repeating distractors across different questions.**  
+
+✔ **Formatting Rules:**  
+   - The **emoji must appear immediately after the question mark** in the question.  
+   - Each answer choice **must end with an emoji** related to its context.  
+   - If no relevant emoji exists, return an empty space (`""`).  
+
+---
 ---
 
 ### **🔥 Example Input:**
@@ -203,23 +210,23 @@ Each question should be structured as follows:
     ""wordId"": 407,
     ""question"": ""Which sentence correctly uses the word 'meticulous'? 🧐"",
     ""options"": [
-      ""She was meticulous, organizing her sock drawer by color, size, and sock personality. 🧦"",   
-      ""He was meticulous about eating and inhaled his burger in two bites. 🍔"",  
-      ""She was meticulous in her strategy to randomly throw clothes in her suitcase. 🎒"",  
-      ""He was meticulous, making sure to always leave a mess behind. 💥""
+      ""She was meticulous, arranging books alphabetically and by genre. 📚"",   
+      ""He was meticulous and never checked his emails or calendar. 📅"",  
+      ""She was meticulous, randomly tossing clothes into her suitcase. 🎒"",  
+      ""He was meticulous, making sure his room was always messy. 💥""
     ],
-    ""correctAnswer"": ""She was meticulous, organizing her sock drawer by color, size, and sock personality. 🧦""
+    ""correctAnswer"": ""She was meticulous, arranging books alphabetically and by genre. 📚""
   }},
   {{
     ""wordId"": 408,
     ""question"": ""Which sentence correctly uses the word 'fortuitous'? 🍀"",
     ""options"": [
-      ""It was fortuitous that she found a $20 bill on the ground as she was craving pizza. 🍕"",  
-      ""He was fortuitous and predicted the winning lottery numbers using science. 🔮"",  
-      ""The chef was fortuitous, blindly adding salt instead of sugar. 🧂"",  
-      ""His fortuitous speech was 100% scripted and rehearsed for weeks. 🎤""
+      ""It was fortuitous that she found an extra ticket before the show. 🎟️"",  
+      ""His fortuitous plan was carefully designed to succeed without luck. 📝"",  
+      ""The chef’s fortuitous choice of salt instead of sugar ruined dessert. 🧂"",  
+      ""Her fortuitous speech was rehearsed for weeks and perfectly delivered. 🎤""
     ],
-    ""correctAnswer"": ""It was fortuitous that she found a $20 bill on the ground as she was craving pizza. 🍕""
+    ""correctAnswer"": ""It was fortuitous that she found an extra ticket before the show. 🎟️""
   }}
 ]
 

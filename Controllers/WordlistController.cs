@@ -214,6 +214,10 @@ namespace GeminiTest.Controllers
                         description = wl.Description,
                         createdAt = wl.CreatedAt,
                         Progress = wl.Progress,
+                        HighestMeaningScore = wl.HighestMeaningScore,
+                        LatestMeaningScore = wl.LatestMeaningScore,
+                        HighestContextScore = wl.HighestContextScore,
+                        LatestContextScore = wl.LatestContextScore,
                         words = wl.Words.Select(w => new
                         {
                             w.Id,
