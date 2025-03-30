@@ -38,17 +38,18 @@ namespace GeminiTest.Controllers
 
             string prompt = $@"
 For each word provided along with its Vietnamese meaning, return a JSON array where:
-- 'word' contains the original word.
+- 'word' contains the original word followed by an appropriate emoji representing its meaning.
 - 'part_of_speech' is inferred from the Vietnamese meaning.
 - 'english_meaning' is a **concise, summarized definition** that accurately matches the given Vietnamese meaning.
 - 'phonetic' contains the IPA transcription.
 - 'vietnamese_meaning' remains unchanged.
-- 'example' provides a natural English sentence using the word correctly in its given part of speech.
+- 'example' provides a natural English sentence using the word correctly in its given meaning.
 
 **Important Rules:**
 - Do not change the Vietnamese meaning.
-- Ensure the **English meaning is clear, precise, and concise** (not too long, but meaningful).
+- Ensure the **English meaning is clear, precise, concise and match the vietnamese meaning** (not too long, but meaningful).
 - Keep the word order the same as in the input.
+- Choose an emoji that visually represents the word's meaning and place it immediately after the word.
 
 ### Example Input:
 [
@@ -60,7 +61,7 @@ For each word provided along with its Vietnamese meaning, return a JSON array wh
 ### Example Output:
 [
   {{
-    ""word"": ""comprehensive"",
+    ""word"": ""comprehensive 📖"",
     ""part_of_speech"": ""adjective"",
     ""english_meaning"": ""covering all aspects of something"",
     ""phonetic"": ""/ˌkɒm.prɪˈhen.sɪv/"",
@@ -68,7 +69,7 @@ For each word provided along with its Vietnamese meaning, return a JSON array wh
     ""example"": ""The report provides a comprehensive analysis of the issue.""
   }},
   {{
-    ""word"": ""negligence"",
+    ""word"": ""negligence ⚠️"",
     ""part_of_speech"": ""noun"",
     ""english_meaning"": ""failure to take proper care"",
     ""phonetic"": ""/ˈnɛɡ.lɪ.dʒəns/"",
@@ -76,7 +77,7 @@ For each word provided along with its Vietnamese meaning, return a JSON array wh
     ""example"": ""His negligence led to a serious accident.""
   }},
   {{
-    ""word"": ""exaggerate"",
+    ""word"": ""exaggerate 📢"",
     ""part_of_speech"": ""verb"",
     ""english_meaning"": ""to make something seem bigger than it is"",
     ""phonetic"": ""/ɪɡˈzædʒ.ə.reɪt/"",
@@ -91,6 +92,7 @@ Now, process the following words:
 
 Ensure the output JSON maintains the same order as the input.
 ";
+
 
 
 
