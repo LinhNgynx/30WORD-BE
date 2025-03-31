@@ -189,8 +189,20 @@ namespace GeminiTest.Controllers
                 wordlist.Progress++;
                 progressUpdated = true;
             }
+            // 🔥 ✅ Optimized Batch Fetch for Words Instead of Multiple FindAsync Calls
+            var wordIds = dto.Answers.Select(a => a.WordId).ToList();
+            var words = await _context.Words.Where(w => wordIds.Contains(w.Id)).ToListAsync();
 
-            // ✅ Always save because latest score is updated
+            foreach (var answer in dto.Answers)
+            {
+                var word = words.FirstOrDefault(w => w.Id == answer.WordId);
+                if (word != null)
+                {
+                    UpdateSpacedRepetition(word, answer.IsCorrect);
+                }
+            }
+
+            // ✅ Single Database Save Instead of Multiple Calls
             await _context.SaveChangesAsync();
 
             return Ok(new
@@ -201,6 +213,33 @@ namespace GeminiTest.Controllers
             });
         }
 
+        private void UpdateSpacedRepetition(Word word, bool isCorrect)
+        {
+            DateTime today = DateTime.UtcNow.Date;
+
+            // ✅ Allow first-time updates regardless of date
+            if (word.LastReviewDate == DateTime.MinValue || word.LastReviewDate.Date != today)
+            {
+                if (isCorrect)
+                {
+                    word.CorrectStreak++;
+                }
+                else
+                {
+                    word.CorrectStreak = 0;
+                }
+
+                int[] reviewIntervals = { 1, 3, 7, 14, 30 };
+                int index = Math.Min(word.CorrectStreak, reviewIntervals.Length - 1);
+                word.NextReviewDate = today.AddDays(reviewIntervals[index]);
+                word.LastReviewDate = today;
+                if (word.CorrectStreak >= 5) word.FluencyValue = (int)FluencyLevel.Mastered;
+                else if (word.CorrectStreak >= 4) word.FluencyValue = (int)FluencyLevel.Advanced;
+                else if (word.CorrectStreak >= 3) word.FluencyValue = (int)FluencyLevel.Proficient;
+                else if (word.CorrectStreak >= 2) word.FluencyValue = (int)FluencyLevel.Familiar;
+                else word.FluencyValue = (int)FluencyLevel.Beginner;
+            }
+        }
 
 
 
@@ -215,7 +254,20 @@ namespace GeminiTest.Controllers
 
         [Range(0, 100, ErrorMessage = "Score must be between 0 and 100.")]
         public int Score { get; set; }  // ✅ Ensure valid score
+
+        [Required]
+        public List<AnswerDto> Answers { get; set; } = new List<AnswerDto>(); // ✅ Add answers for spaced repetition
     }
+
+    public class AnswerDto
+    {
+        [Required]
+        public int WordId { get; set; }  // ✅ Reference to the word in the quiz
+
+        [Required]
+        public bool IsCorrect { get; set; }  // ✅ Indicates if the answer was correct
+    }
+
 
 
     // Model matching API request format
