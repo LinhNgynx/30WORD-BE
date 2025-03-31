@@ -40,14 +40,14 @@ namespace GeminiTest.Controllers
 For each word provided along with its Vietnamese meaning, return a JSON array where:
 - 'word' contains the original word followed by an appropriate emoji representing its meaning.
 - 'part_of_speech' is inferred from the Vietnamese meaning.
-- 'english_meaning' is a **concise, summarized definition** that accurately matches the given Vietnamese meaning.
+- 'english_meaning' is a **concise, summarized definition** that accurately matches the given Vietnamese meaning(NOT THE VIETNAMESE MEANING YOU THINK IT IS).
 - 'phonetic' contains the IPA transcription.
 - 'vietnamese_meaning' remains unchanged.
 - 'example' provides a natural English sentence using the word correctly in its given meaning.
 
 **Important Rules:**
 - Do not change the Vietnamese meaning.
-- Ensure the **English meaning is clear, precise, concise and match the vietnamese meaning** (not too long, but meaningful).
+- 'english_meaning' must be a clear, precise, concise definition that **exactly** corresponds to the provided Vietnamese meaning, even if the word has multiple meanings. DO NOT default to common meanings that do not match the Vietnamese meaning.
 - Keep the word order the same as in the input.
 - Choose an emoji that visually represents the word's meaning and place it immediately after the word.
 
@@ -55,7 +55,7 @@ For each word provided along with its Vietnamese meaning, return a JSON array wh
 [
   {{ ""word"": ""comprehensive"", ""vietnamese_meaning"": ""toàn diện"" }},
   {{ ""word"": ""negligence"", ""vietnamese_meaning"": ""sự cẩu thả"" }},
-  {{ ""word"": ""exaggerate"", ""vietnamese_meaning"": ""phóng đại"" }}
+  {{  ""word"": ""shabby"", ""vietnamese_meaning"": ""hèn hạ, đáng khinh"" }}
 ]
 
 ### Example Output:
@@ -77,12 +77,12 @@ For each word provided along with its Vietnamese meaning, return a JSON array wh
     ""example"": ""His negligence led to a serious accident.""
   }},
   {{
-    ""word"": ""exaggerate 📢"",
-    ""part_of_speech"": ""verb"",
-    ""english_meaning"": ""to make something seem bigger than it is"",
-    ""phonetic"": ""/ɪɡˈzædʒ.ə.reɪt/"",
-    ""vietnamese_meaning"": ""phóng đại"",
-    ""example"": ""She tends to exaggerate her achievements.""
+    ""word"": ""shabby 😠"",
+    ""part_of_speech"": ""adjective"",
+    ""english_meaning"": ""dishonorable and despicable"",
+    ""phonetic"": ""/ˈʃæb.i/"",
+    ""vietnamese_meaning"": ""hèn hạ, đáng khinh"",
+    ""example"": ""His shabby actions made everyone lose respect for him.""
   }}
 ]
 
