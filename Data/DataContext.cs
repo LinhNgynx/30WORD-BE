@@ -12,6 +12,8 @@ namespace GeminiTest.Data
         public DbSet<Wordlist> Wordlists { get; set; }
 
         public DbSet<Quiz> Quizzes { get; set; }
+
+        public DbSet<WordSentence> WordSentences { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -35,6 +37,11 @@ namespace GeminiTest.Data
                  .WithMany(w => w.Quizzes)
                  .HasForeignKey(q => q.WordId)
                  .OnDelete(DeleteBehavior.Cascade);
+            modelBuilder.Entity<WordSentence>()
+               .HasOne(ws => ws.Word)
+               .WithOne(w => w.WordSentence)
+               .HasForeignKey<WordSentence>(ws => ws.WordId)
+               .OnDelete(DeleteBehavior.Cascade); // If a word is deleted, delete its sentence
         }
 
     }

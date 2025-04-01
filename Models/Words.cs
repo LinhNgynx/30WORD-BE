@@ -40,6 +40,7 @@ namespace GeminiTest.Models
             get => (FluencyLevel)FluencyValue;
             set => FluencyValue = (int)value;
         }
+        public WordSentence WordSentence { get; set; }
     }
     public enum FluencyLevel
     {
