@@ -1,11 +1,16 @@
 ﻿using GeminiTest.Data;
+using GeminiTest.DTO;
 using GeminiTest.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Internal;
+using Microsoft.Extensions.Options;
 using System.Security.Claims;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace GeminiTest.Controllers
 {
@@ -15,8 +20,12 @@ namespace GeminiTest.Controllers
     {
         private readonly DataContext _context;
         private readonly ILogger<WordSentenceController> _logger;
-        public WordSentenceController(DataContext context, ILogger<WordSentenceController> logger)
+        private readonly IHttpClientFactory _httpClientFactory;
+        private readonly string _apiKey;
+        public WordSentenceController(IHttpClientFactory httpClientFactory, IOptions<GeminiSettings> geminiSettings, DataContext context, ILogger<WordSentenceController> logger)
         {
+            _httpClientFactory = httpClientFactory;
+            _apiKey = geminiSettings.Value.ApiKey;
             _context = context;
             _logger = logger;
         }
@@ -59,7 +68,6 @@ namespace GeminiTest.Controllers
                         WordId = word.Id,
                         SentenceText = "",
                         Feedback = "",
-                        Point = 0,
                         CreatedDate = DateTime.UtcNow
                     })
                     .ToList();
@@ -101,7 +109,7 @@ namespace GeminiTest.Controllers
         {
             try
             {
-                
+
                 var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value?.Trim();
                 if (string.IsNullOrEmpty(userId))
                 {
@@ -128,10 +136,11 @@ namespace GeminiTest.Controllers
                 var result = wordSentences.Select(ws => new
                 {
                     ws.Id,
+                    ws.WordId,
+                    WordText = ws.Word.WordText,
+                    Meaning = ws.Word.EnglishMeaning,
                     ws.SentenceText,
                     ws.Feedback,
-                    ws.Point,
-                    ws.CreatedDate,
                 });
                 return Ok(result);
             }
@@ -142,6 +151,176 @@ namespace GeminiTest.Controllers
             }
         }
 
+        [HttpPut("save-answer")]
+        [Authorize]
 
+        public async Task<IActionResult> UpdateSentence([FromBody] SentencePayLoad sentencePayLoad)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(sentencePayLoad.SentenceText) ||
+                  string.IsNullOrWhiteSpace(sentencePayLoad.Feedback))
+                {
+                    return BadRequest("Invalid sentence or feedback.");
+                }
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value?.Trim();
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Unauthorized(new { message = "User not authenticated" });
+                }
+                var wordlist = await _context.Wordlists
+                    .FirstOrDefaultAsync(wl => wl.Id == sentencePayLoad.WordlistId && wl.UserId == userId);
+
+                if (wordlist == null)
+                {
+                    return NotFound(new { message = "Wordlist not found or does not belong to the user." });
+                }
+                var wordSentence = await _context.WordSentences.FindAsync(sentencePayLoad.Id);
+
+                wordSentence.Feedback = sentencePayLoad.Feedback;
+                wordSentence.SentenceText = sentencePayLoad.SentenceText;
+
+                _context.WordSentences.Update(wordSentence);
+                await _context.SaveChangesAsync();
+
+                return Ok(new { message = "Answer saved successfully." });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error saving sentences: {ex.Message}");
+            }
+        }
+        [HttpPost("evaluate-sentence")]
+        public async Task<IActionResult> EvaluateSentence([FromBody] SentenceEvaluateRequest request)
+        {
+            if (string.IsNullOrWhiteSpace(request.Word) || string.IsNullOrWhiteSpace(request.Sentence))
+            {
+                return BadRequest("Word and sentence are required.");
+            }
+
+            string prompt = @$"
+You are a tiny but loud-mouthed Pomeranian who’s been promoted (somehow) to sentence coach. 
+You live inside a language learning app and take your job *way* too seriously. You are a complete asshole, overly dramatic and just want to shit all over the user sentences.
+
+Your job is to review student-written sentences for grammar, clarity, and proper usage of a target word. 
+If they mess up, you let them know — be sarcastic, critical and a total dick. If they do well, you give them funny, sarcastic praise 
+You use emojis, sass, and over-the-top reactions to make them laugh.
+
+- Always speak like a chaotic little hype beast who just drank a triple espresso.
+
+Evaluate the following sentence: {JsonSerializer.Serialize(request.Sentence)}  
+Does it correctly use the word {JsonSerializer.Serialize(request.Word)} with the meaning: {JsonSerializer.Serialize(request.Meaning)}?
+
+Return a JSON object that includes:
+- **feedback**: A sarcastic, critical response in Vietnamese, highlighting the mistakes and adding emojis and sass.
+- **animation**: One of the following valid options: walk, run, playful, bark, sit, tilt, leap, howl, paw, beg, rollover, and wetDogShake. Choose the animation that best fits the tone of the feedback.
+";
+
+
+            var requestBody = new
+            {
+                contents = new[]
+                {
+            new { role = "user", parts = new[] { new { text = prompt } } }
+        }
+            };
+
+            var jsonContent = new StringContent(JsonSerializer.Serialize(requestBody), Encoding.UTF8, "application/json");
+
+            try
+            {
+                var httpClient = _httpClientFactory.CreateClient();
+                var apiUrl = $"https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key={_apiKey}";
+
+                _logger.LogInformation("Sending request to Gemini API to evaluate word");
+
+                var response = await httpClient.PostAsync(apiUrl, jsonContent);
+                if (!response.IsSuccessStatusCode)
+                {
+                    var errorMessage = await response.Content.ReadAsStringAsync();
+                    return StatusCode((int)response.StatusCode, new { error = "Error calling Gemini API.", details = errorMessage });
+                }
+
+                // Get the response content as string
+                var responseContent = await response.Content.ReadAsStringAsync();
+
+                // Parse the response content (assuming it's JSON)
+                _logger.LogInformation("Raw Gemini API Evaluate:", responseContent);
+
+                var extractedJson = ExtractJsonFromResponse(responseContent);
+
+                return Ok(extractedJson);
+            }
+            catch (HttpRequestException httpEx)
+            {
+                _logger.LogError("HTTP request error: {Message}", httpEx.Message);
+                return StatusCode(500, new { error = "Internal server error", details = httpEx.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("Unexpected error: {Message}", ex.Message);
+                return StatusCode(500, new { error = "Unexpected error occurred.", details = ex.Message });
+            }
+        }
+        
+
+        private FeedbackResponse ExtractJsonFromResponse(string responseString)
+        {
+            try
+            {
+                using var doc = JsonDocument.Parse(responseString);
+                var root = doc.RootElement;
+
+                if (root.TryGetProperty("candidates", out var candidates) && candidates.GetArrayLength() > 0 &&
+                    candidates[0].TryGetProperty("content", out var content) &&
+                    content.TryGetProperty("parts", out var parts) && parts.GetArrayLength() > 0 &&
+                    parts[0].TryGetProperty("text", out var textElement))
+                {
+                    string contentText = textElement.GetString() ?? "";
+
+                    contentText = contentText.Replace("```json", "").Replace("```", "").Trim();
+
+                    _logger.LogInformation("Extracted JSON: {ExtractedJson}", contentText);
+
+                    var response = JsonSerializer.Deserialize<FeedbackResponse>(contentText, new JsonSerializerOptions
+                    {
+                        PropertyNameCaseInsensitive = true
+                    });
+
+                    // If deserialization fails (content is not valid JSON), return null
+                    return response ?? new FeedbackResponse();
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("Error extracting JSON from Gemini response: {Message}", ex.ToString());
+            }
+            return new FeedbackResponse();
+
+        }
     }
+        public class SentenceEvaluateRequest
+    {
+        public string Word { get; set; }
+        public string Meaning { get; set; }       // Now matches frontend payload
+        public string Sentence { get; set; }
+    }
+    public class SentencePayLoad
+    {
+        public int WordlistId { get; set; }
+        public int Id { get; set; } // Sentence ID (0 or null if it's a new sentence)
+        public string SentenceText { get; set; }
+        public string Feedback { get; set; }
+    }
+
+    public class FeedbackResponse
+    {
+        [JsonPropertyName("feedback")]
+        public string Feedback { get; set; }
+
+        [JsonPropertyName("animation")]
+        public string Animation { get; set; }
+    }
+
+
 }

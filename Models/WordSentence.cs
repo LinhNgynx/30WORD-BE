@@ -15,9 +15,6 @@ namespace GeminiTest.Models
 
         public string Feedback { get; set; }  // AI or instructor feedback
 
-        [Range(0, 100)]
-        public int Point { get; set; } = 0;  // Sentence score (0-100 scale)
-
         public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
 
         [Required]
