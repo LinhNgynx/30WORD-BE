@@ -284,5 +284,43 @@ namespace GeminiTest.Controllers
             }
         }
 
+        [HttpGet("user-word-summary")]
+        [Authorize]
+        public async Task<IActionResult> GetUserWordSummary()
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value?.Trim();
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized(new { message = "User not authenticated" });
+            }
+
+            var words = await _context.Words
+                .Where(w => w.Wordlist.UserId == userId)
+                .ToListAsync();
+
+            var summary = new WordSummaryDto
+            {
+                TotalWords = words.Count,
+                BeginnerCount = words.Count(w => w.FluencyValue == (int)FluencyLevel.Beginner),
+                FamiliarCount = words.Count(w => w.FluencyValue == (int)FluencyLevel.Familiar),
+                ProficientCount = words.Count(w => w.FluencyValue == (int)FluencyLevel.Proficient),
+                AdvancedCount = words.Count(w => w.FluencyValue == (int)FluencyLevel.Advanced),
+                MasteredCount = words.Count(w => w.FluencyValue == (int)FluencyLevel.Mastered)
+            };
+
+            return Ok(summary);
+        }
+
+
     }
+    public class WordSummaryDto
+    {
+        public int TotalWords { get; set; }
+        public int BeginnerCount { get; set; }
+        public int FamiliarCount { get; set; }
+        public int ProficientCount { get; set; }
+        public int AdvancedCount { get; set; }
+        public int MasteredCount { get; set; }
+    }
+
 }

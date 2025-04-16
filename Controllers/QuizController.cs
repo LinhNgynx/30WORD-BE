@@ -213,6 +213,49 @@ namespace GeminiTest.Controllers
             });
         }
 
+        [HttpGet("quiz-history")]
+        [Authorize]
+        public async Task<IActionResult> GetUserQuizHistory()
+        {
+            try
+            {
+                // Retrieve user ID from the claims
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value?.Trim();
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Unauthorized(new { message = "User not authenticated." });
+                }
+
+                // Retrieve the quiz history for the user
+                var userQuizzes = await _context.Wordlists
+                    .Where(wl => wl.UserId == userId)  // Filter wordlists by userId
+                    .SelectMany(wl => wl.Words)        // Get all words from those wordlists
+                    .SelectMany(w => w.Quizzes)        // Get all quizzes related to those words
+                    .GroupBy(q => q.CreatedAt.Date)    // Group quizzes by creation date
+                    .Select(g => new { date = g.Key, count = g.Count() })  // Project the count per date
+                    .ToListAsync();  // Retrieve as a list
+
+                // If no quizzes found, return an empty array with a message
+                if (userQuizzes == null || userQuizzes.Count == 0)
+                {
+                    return Ok(new { message = "No quizzes found for this user.", data = new List<object>() });
+                }
+
+                // Return the quiz history
+                return Ok(userQuizzes);
+            }
+            catch (Exception ex)
+            {
+                // Log the error (can be logged to a file or a monitoring service)
+                _logger.LogError(ex, "An error occurred while fetching the quiz history.");
+
+                // Return a generic error message to the client
+                return StatusCode(500, new { message = "An error occurred while processing your request.", error = ex.Message });
+            }
+        }
+
+
+
         private void UpdateSpacedRepetition(Word word, bool isCorrect)
         {
             DateTime today = DateTime.UtcNow.Date;
@@ -233,10 +276,10 @@ namespace GeminiTest.Controllers
                 int index = Math.Min(word.CorrectStreak, reviewIntervals.Length - 1);
                 word.NextReviewDate = today.AddDays(reviewIntervals[index]);
                 word.LastReviewDate = today;
-                if (word.CorrectStreak >= 5) word.FluencyValue = (int)FluencyLevel.Mastered;
-                else if (word.CorrectStreak >= 4) word.FluencyValue = (int)FluencyLevel.Advanced;
-                else if (word.CorrectStreak >= 3) word.FluencyValue = (int)FluencyLevel.Proficient;
-                else if (word.CorrectStreak >= 2) word.FluencyValue = (int)FluencyLevel.Familiar;
+                if (word.CorrectStreak >= 4) word.FluencyValue = (int)FluencyLevel.Mastered;
+                else if (word.CorrectStreak >= 3) word.FluencyValue = (int)FluencyLevel.Advanced;
+                else if (word.CorrectStreak >= 2) word.FluencyValue = (int)FluencyLevel.Proficient;
+                else if (word.CorrectStreak >= 1) word.FluencyValue = (int)FluencyLevel.Familiar;
                 else word.FluencyValue = (int)FluencyLevel.Beginner;
             }
         }

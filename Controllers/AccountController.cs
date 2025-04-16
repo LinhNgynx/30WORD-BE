@@ -7,6 +7,8 @@ using Microsoft.Extensions.Caching.Memory;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Threading.Tasks;
+using System.ComponentModel.DataAnnotations;
+using Microsoft.IdentityModel.Tokens;
 
 [Route("api/account")]
 [ApiController]
@@ -36,8 +38,16 @@ public class AccountController : ControllerBase
         var user = await _userManager.FindByIdAsync(userId);
         if (user == null) return NotFound();
 
-        return Ok(new { id = user.Id, email = user.Email, fullName = user.UserName });
+        return Ok(new
+        {
+            id = user.Id,
+            email = user.Email,
+            fullName = user.FullName,
+            favoriteDog = user.FavoriteDog.ToString(), // convert enum to string
+            level = user.Level.ToString()
+        });
     }
+
     [HttpPost("forgotPassword")]
     public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordDto model)
     {
@@ -173,6 +183,72 @@ public class AccountController : ControllerBase
         _cache.Remove(cacheKey);
         return Ok(new { message = "Email verified successfully." });
     }
+    [HttpPatch("profile")]
+    [Authorize]
+    public async Task<IActionResult> PatchProfile([FromBody] PatchProfileRequest request)
+    {
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value?.Trim();
+        if (string.IsNullOrEmpty(userId))
+        {
+            return Unauthorized(new { message = "User not authenticated." });
+        }
+
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user == null) return NotFound(new { message = "User not found" });
+
+        // Apply changes only if provided
+        if (!string.IsNullOrWhiteSpace(request.FullName))
+            user.FullName = request.FullName;
+
+        // Convert the FavoriteDog string to the corresponding enum (if provided)
+        if (!string.IsNullOrEmpty(request.FavoriteDog))
+        {
+            if (Enum.TryParse<DogType>(request.FavoriteDog, true, out var dogType))
+            {
+                user.FavoriteDog = dogType;
+            }
+            else
+            {
+                return BadRequest(new { message = "Invalid FavoriteDog value." });
+            }
+        }
+
+        // Convert the Level string to the corresponding enum (if provided)
+        if (!string.IsNullOrEmpty(request.Level))
+        {
+            if (Enum.TryParse<UserLevel>(request.Level, true, out var userLevel))
+            {
+                user.Level = userLevel;
+            }
+            else
+            {
+                return BadRequest(new { message = "Invalid Level value." });
+            }
+        }
+
+        var result = await _userManager.UpdateAsync(user);
+
+        if (result.Succeeded)
+        {
+            return Ok(new
+            {
+                success = true,
+                message = "Profile updated successfully.",
+                data = new
+                {
+                    id = user.Id,
+                    email = user.Email,
+                    fullName = user.FullName,
+                    favoriteDog = user.FavoriteDog.ToString(), // convert enum to string
+                    level = user.Level.ToString() // convert enum to string
+                }
+            });
+        }
+
+        return BadRequest("Failed to update profile.");
+    }
+
+
 
 
     public class ForgotPasswordDto
@@ -196,4 +272,15 @@ public class AccountController : ControllerBase
         public string Email { get; set; }
         public string Otp { get; set; }
     }
+    public class PatchProfileRequest
+    {
+        public string? FullName { get; set; }
+
+        public string? FavoriteDog { get; set; } // Now expecting a string (e.g., "Pomeranian")
+
+        public string? Level { get; set; } // Now expecting a string (e.g., "Beginner")
+    }
+
+
+
 }

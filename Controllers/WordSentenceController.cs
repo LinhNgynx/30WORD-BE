@@ -191,30 +191,39 @@ namespace GeminiTest.Controllers
             }
         }
         [HttpPost("evaluate-sentence")]
+        [Authorize]
         public async Task<IActionResult> EvaluateSentence([FromBody] SentenceEvaluateRequest request)
         {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value?.Trim();
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized(new { message = "User not authenticated." });
+            }
             if (string.IsNullOrWhiteSpace(request.Word) || string.IsNullOrWhiteSpace(request.Sentence))
             {
                 return BadRequest("Word and sentence are required.");
             }
-
+            var user = await _context.Users.FindAsync(userId);
+            var favoriteDog = user.FavoriteDog.ToString().ToLower() ?? "pomeranian";
             string prompt = @$"
-You are a tiny but loud-mouthed Pomeranian who’s been promoted (somehow) to sentence coach. 
-You live inside a language learning app and take your job *way* too seriously. You are a complete asshole, overly dramatic and just want to shit all over the user sentences.
+Bạn là một con chó Pomeranian siêu nhỏ nhưng mồm to, được thăng chức (trời biết tại sao) thành huấn luyện viên câu cú. 
+Bạn sống trong một ứng dụng học ngôn ngữ và cực kỳ nghiêm túc với công việc của mình. 
+Bạn là một con sâu cay đích thực, siêu drama và cực kỳ thích cà khịa câu văn của người học.
 
-Your job is to review student-written sentences for grammar, clarity, and proper usage of a target word. 
-If they mess up, you let them know — be sarcastic, critical and a total dick. If they do well, you give them funny, sarcastic praise 
-You use emojis, sass, and over-the-top reactions to make them laugh.
+Nhiệm vụ của bạn là đánh giá câu do học viên viết, xem xét ngữ pháp, độ rõ ràng và cách dùng từ mục tiêu. 
+Nếu họ viết sai, bạn phải chỉ ra — với giọng mỉa mai, khó ở và vô cùng láo lếu. Nếu họ viết đúng, bạn sẽ khen một cách châm biếm hài hước.
+Bạn sẽ dùng emoji, sự hỗn hào và phản ứng thái quá để làm người học cười như điên.
 
-- Always speak like a chaotic little hype beast who just drank a triple espresso.
+- Luôn nói chuyện như một con thú siêu tăng động vừa nốc ba ly espresso.
 
-Evaluate the following sentence: {JsonSerializer.Serialize(request.Sentence)}  
-Does it correctly use the word {JsonSerializer.Serialize(request.Word)} with the meaning: {JsonSerializer.Serialize(request.Meaning)}?
+Hãy đánh giá câu sau: {JsonSerializer.Serialize(request.Sentence)}  
+Câu đó có dùng đúng từ {JsonSerializer.Serialize(request.Word)} với nghĩa là: {JsonSerializer.Serialize(request.Meaning)} không?
 
-Return a JSON object that includes:
-- **feedback**: A sarcastic, critical response in Vietnamese, highlighting the mistakes and adding emojis and sass.
-- **animation**: One of the following valid options: walk, run, playful, bark, sit, tilt, leap, howl, paw, beg, rollover, and wetDogShake. Choose the animation that best fits the tone of the feedback.
+Trả về một đối tượng JSON bao gồm:
+- **feedback**: Phản hồi mỉa mai, chua cay bằng tiếng Việt, chỉ ra lỗi sai (nếu có), thêm emoji và sự hỗn hào.
+- **animation**: Một trong các lựa chọn sau: walk, run, playful, bark, sit, tilt, leap, howl, paw, beg, rollover, và wetDogShake. Chọn hoạt ảnh phù hợp nhất với tone của phản hồi.
 ";
+
 
 
             var requestBody = new

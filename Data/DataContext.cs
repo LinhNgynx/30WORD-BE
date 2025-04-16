@@ -42,6 +42,14 @@ namespace GeminiTest.Data
                .WithOne(w => w.WordSentence)
                .HasForeignKey<WordSentence>(ws => ws.WordId)
                .OnDelete(DeleteBehavior.Cascade); // If a word is deleted, delete its sentence
+            modelBuilder.Entity<ApplicationUser>()
+               .Property(u => u.FavoriteDog)
+                .HasDefaultValue(DogType.Pomeranian);
+
+            // Default value for ApplicationUser.Level
+            modelBuilder.Entity<ApplicationUser>()
+                .Property(u => u.Level)
+                .HasDefaultValue(UserLevel.Beginner);
         }
 
     }
