@@ -40,7 +40,7 @@ builder.Services.AddSwaggerGen(options =>
 });
 builder.Services.AddMemoryCache();
 builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();
-
+builder.Services.AddScoped<IPromptService, PromptService>();
 builder.Services.AddHttpClient();
 
 builder.Services.AddAuthorization();

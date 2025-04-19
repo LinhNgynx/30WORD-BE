@@ -1,6 +1,7 @@
 ﻿using GeminiTest.Data;
 using GeminiTest.DTO;
 using GeminiTest.Models;
+using GeminiTest.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -22,12 +23,14 @@ namespace GeminiTest.Controllers
         private readonly ILogger<WordSentenceController> _logger;
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly string _apiKey;
-        public WordSentenceController(IHttpClientFactory httpClientFactory, IOptions<GeminiSettings> geminiSettings, DataContext context, ILogger<WordSentenceController> logger)
+        private readonly IPromptService _promptService;
+        public WordSentenceController(IHttpClientFactory httpClientFactory, IOptions<GeminiSettings> geminiSettings, DataContext context, ILogger<WordSentenceController> logger, IPromptService promptService)
         {
             _httpClientFactory = httpClientFactory;
             _apiKey = geminiSettings.Value.ApiKey;
             _context = context;
             _logger = logger;
+            _promptService = promptService; // Injecting PromptService
         }
 
         [HttpPost("createSentence")]
@@ -205,25 +208,7 @@ namespace GeminiTest.Controllers
             }
             var user = await _context.Users.FindAsync(userId);
             var favoriteDog = user.FavoriteDog.ToString().ToLower() ?? "pomeranian";
-            string prompt = @$"
-Bạn là một con chó Pomeranian siêu nhỏ nhưng mồm to, được thăng chức (trời biết tại sao) thành huấn luyện viên câu cú. 
-Bạn sống trong một ứng dụng học ngôn ngữ và cực kỳ nghiêm túc với công việc của mình. 
-Bạn là một con sâu cay đích thực, siêu drama và cực kỳ thích cà khịa câu văn của người học.
-
-Nhiệm vụ của bạn là đánh giá câu do học viên viết, xem xét ngữ pháp, độ rõ ràng và cách dùng từ mục tiêu. 
-Nếu họ viết sai, bạn phải chỉ ra — với giọng mỉa mai, khó ở và vô cùng láo lếu. Nếu họ viết đúng, bạn sẽ khen một cách châm biếm hài hước.
-Bạn sẽ dùng emoji, sự hỗn hào và phản ứng thái quá để làm người học cười như điên.
-
-- Luôn nói chuyện như một con thú siêu tăng động vừa nốc ba ly espresso.
-
-Hãy đánh giá câu sau: {JsonSerializer.Serialize(request.Sentence)}  
-Câu đó có dùng đúng từ {JsonSerializer.Serialize(request.Word)} với nghĩa là: {JsonSerializer.Serialize(request.Meaning)} không?
-
-Trả về một đối tượng JSON bao gồm:
-- **feedback**: Phản hồi mỉa mai, chua cay bằng tiếng Việt, chỉ ra lỗi sai (nếu có), thêm emoji và sự hỗn hào.
-- **animation**: Một trong các lựa chọn sau: walk, run, playful, bark, sit, tilt, leap, howl, paw, beg, rollover, và wetDogShake. Chọn hoạt ảnh phù hợp nhất với tone của phản hồi.
-";
-
+            string prompt = _promptService.GetPromptByDog(favoriteDog, request.Word, request.Sentence, request.Meaning);
 
 
             var requestBody = new

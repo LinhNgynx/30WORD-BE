@@ -184,7 +184,7 @@ namespace GeminiTest.Controllers
             }
 
             // ✅ Update progress if highest score exceeds 80 and matches the threshold
-            if (highestScoreUpdated && currentHighestScore > 80 && wordlist.Progress == progressThreshold)
+            if (highestScoreUpdated && currentHighestScore >= 80 && wordlist.Progress == progressThreshold)
             {
                 wordlist.Progress++;
                 progressUpdated = true;
