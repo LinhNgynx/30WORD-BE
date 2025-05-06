@@ -323,8 +323,9 @@ namespace GeminiTest.Controllers
             }
         }
 
-        [Authorize]
+        
         [HttpPost("update-review-status")]
+        [Authorize]
         public async Task<IActionResult> UpdateReviewStatus([FromBody] ReviewUpdateDto dto)
         {
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value?.Trim();
@@ -336,7 +337,7 @@ namespace GeminiTest.Controllers
                 .FirstOrDefaultAsync(w => w.Id == dto.WordId &&  w.Wordlist.UserId == userId);
 
             if (word == null)
-                return NotFound("Word not found.");
+                return NotFound(new { message = "Word not found" });
 
             if (dto.SkipReview)
             {

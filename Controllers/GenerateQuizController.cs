@@ -1,5 +1,9 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using GeminiTest.Models;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
+using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -11,18 +15,28 @@ namespace GeminiTest.Controllers
     public class GenerateQuizController : ControllerBase
     {
         private readonly IHttpClientFactory _httpClientFactory;
+        private readonly UserManager<ApplicationUser> _userManager;
         private readonly string _apiKey;
         private readonly ILogger<GenerateQuizController> _logger;
 
-        public GenerateQuizController(IHttpClientFactory httpClientFactory, IOptions<GeminiSettings> geminiSettings, ILogger<GenerateQuizController> logger)
+        public GenerateQuizController(UserManager<ApplicationUser> userManager, IHttpClientFactory httpClientFactory, IOptions<GeminiSettings> geminiSettings, ILogger<GenerateQuizController> logger)
         {
+            _userManager = userManager;
             _httpClientFactory = httpClientFactory;
             _apiKey = geminiSettings.Value.ApiKey;
             _logger = logger;
         }
         [HttpPost("generate/Meaning")]
+        [Authorize]
         public async Task<IActionResult> GenerateContent([FromBody] GenerateQuizRequest request)
         {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value?.Trim();
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized(new { message = "User not authenticated" });
+            }
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user == null) return NotFound(new { message = "User not found" });
             if (request.Words == null || request.Words.Count == 0)
             {
                 return BadRequest(new { error = "No words provided." });
@@ -151,12 +165,87 @@ Each quiz question should follow this structure:
         }
 
         [HttpPost("generate/ContextUsage")]
+        [Authorize]
         public async Task<IActionResult> GenerateContext([FromBody] GenerateQuizRequest request)
         {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value?.Trim();
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized(new { message = "User not authenticated" });
+            }
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user == null) return NotFound(new { message = "User not found" });
             if (request.Words == null || request.Words.Count == 0)
             {
                 return BadRequest(new { error = "No words provided." });
             }
+            int minWords = 8;
+            int maxWords = 10;
+
+            switch (user.Level)
+            {
+                case UserLevel.Beginner:
+                    minWords = 8;
+                    maxWords = 10;
+                    break;
+                case UserLevel.Intermediate:
+                    minWords = 10;
+                    maxWords = 13;
+                    break;
+                case UserLevel.Advanced:
+                    minWords = 13;
+                    maxWords = 18;
+                    break;
+            }
+            string exampleOutput = user.Level switch
+            {
+                UserLevel.Beginner => @"
+### **🎯 Example Output (Beginner - 8-10 words):**
+[
+  {
+    ""wordId"": 407,
+    ""question"": ""Which sentence correctly uses the word 'meticulous'? 🧐"",
+    ""options"": [
+      ""She was meticulous, folding each shirt neatly. 👕"",
+      ""He was meticulous and skipped planning every day. 📅"",
+      ""She was meticulous, throwing socks around the room. 🧦"",
+      ""He was meticulous, but forgot to set alarms. ⏰""
+    ],
+    ""correctAnswer"": ""She was meticulous, folding each shirt neatly. 👕""
+  }
+]",
+                UserLevel.Intermediate => @"
+### **🎯 Example Output (Intermediate - 10-13 words):**
+[
+  {
+    ""wordId"": 407,
+    ""question"": ""Which sentence correctly uses the word 'meticulous'? 🧐"",
+    ""options"": [
+      ""She was meticulous, sorting pens by type, size, and color. 🖊️"",
+      ""He was meticulous, losing notes and never organizing them. 📝"",
+      ""She was meticulous, piling clothes without looking. 🧥"",
+      ""He was meticulous, ignoring all tiny details in the project. 🔍""
+    ],
+    ""correctAnswer"": ""She was meticulous, sorting pens by type, size, and color. 🖊️""
+  }
+]",
+                UserLevel.Advanced => @"
+### **🎯 Example Output (Advanced - 13-18 words):**
+[
+  {
+    ""wordId"": 407,
+    ""question"": ""Which sentence correctly uses the word 'meticulous'? 🧐"",
+    ""options"": [
+      ""She was meticulous, reviewing every sentence in her essay for grammar and clarity. 📄"",
+      ""He was meticulous, randomly selecting items without any attention to detail. 🎯"",
+      ""She was meticulous, ignoring deadlines and missing obvious mistakes in reports. 📊"",
+      ""He was meticulous, throwing all tools into a single messy box. 🧰""
+    ],
+    ""correctAnswer"": ""She was meticulous, reviewing every sentence in her essay for grammar and clarity. 📄""
+  }
+]",
+                _ => ""
+            };
 
             string prompt = $@"
 ### **📚 Word Usage Quiz Generator**  
@@ -176,7 +265,7 @@ Each question should be structured as follows:
 ✔ **Correct Usage (1 Answer):**  
    - The correct sentence must be **precise, natural, and NOT exaggerated or funny**.  
    - It should **clearly convey the word's meaning** in a professional yet engaging way.  
-   - **Must be 10-15 words long** for consistency.  
+   - **Must be {minWords}-{maxWords} words long** for consistency.  
 
 ✔ **Incorrect Usage (3 Distractors):**  
    - **Each incorrect option must misuse the word in a common but plausible way.**  
@@ -185,7 +274,7 @@ Each question should be structured as follows:
      - A **slightly wrong meaning** that seems close but is incorrect.
      - A **completely incorrect use** that still sounds grammatically correct.
      - A **misunderstanding of the word’s function** (e.g., using a noun as a verb).  
-   - **Must be 10-15 words long** (same length as the correct answer).  
+   - **Must be {minWords}-{maxWords} words long** (same length as the correct answer).  
    - **Avoid repeating distractors across different questions.**  
 
 ✔ **Formatting Rules:**  
@@ -199,37 +288,11 @@ Each question should be structured as follows:
 ### **🔥 Example Input:**
 [
   {{ ""id"": 407, ""wordText"": ""meticulous"", ""englishMeaning"": ""showing great attention to detail; very careful and precise."" }},
-  {{ ""id"": 408, ""wordText"": ""fortuitous"", ""englishMeaning"": ""happening by chance, especially in a lucky way."" }}
 ]
 
 ---
 
-### **🎯 Example Output (Funny & Engaging with Icons):**
-[
-  {{
-    ""wordId"": 407,
-    ""question"": ""Which sentence correctly uses the word 'meticulous'? 🧐"",
-    ""options"": [
-      ""She was meticulous, arranging books alphabetically and by genre. 📚"",   
-      ""He was meticulous and never checked his emails or calendar. 📅"",  
-      ""She was meticulous, randomly tossing clothes into her suitcase. 🎒"",  
-      ""He was meticulous, making sure his room was always messy. 💥""
-    ],
-    ""correctAnswer"": ""She was meticulous, arranging books alphabetically and by genre. 📚""
-  }},
-  {{
-    ""wordId"": 408,
-    ""question"": ""Which sentence correctly uses the word 'fortuitous'? 🍀"",
-    ""options"": [
-      ""It was fortuitous that she found an extra ticket before the show. 🎟️"",  
-      ""His fortuitous plan was carefully designed to succeed without luck. 📝"",  
-      ""The chef’s fortuitous choice of salt instead of sugar ruined dessert. 🧂"",  
-      ""Her fortuitous speech was rehearsed for weeks and perfectly delivered. 🎤""
-    ],
-    ""correctAnswer"": ""It was fortuitous that she found an extra ticket before the show. 🎟️""
-  }}
-]
-
+{exampleOutput}
 
 ---
 

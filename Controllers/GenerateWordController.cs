@@ -1,5 +1,7 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
+using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -26,8 +28,14 @@ namespace GeminiTest.Controllers
         }
 
         [HttpPost("generate")]
+        [Authorize]
         public async Task<IActionResult> Generate([FromBody] Dictionary<string, string> selectedMeanings)
         {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value?.Trim();
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized(new { message = "User not authenticated" });
+            }
             if (selectedMeanings == null || selectedMeanings.Count == 0)
             {
                 return BadRequest(new { error = "No meanings provided." });
