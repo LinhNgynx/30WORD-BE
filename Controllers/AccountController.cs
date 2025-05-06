@@ -9,6 +9,8 @@ using System.Security.Cryptography;
 using System.Threading.Tasks;
 using System.ComponentModel.DataAnnotations;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.Extensions.Caching.Distributed;
+using StackExchange.Redis;
 
 [Route("api/account")]
 [ApiController]
@@ -16,17 +18,23 @@ public class AccountController : ControllerBase
 {
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IEmailSender _emailSender;
-    private readonly IMemoryCache _cache;
+    private readonly IConnectionMultiplexer _connectionMultiplexer;
     private readonly ILogger<AccountController> _logger;
 
 
-    public AccountController(UserManager<ApplicationUser> userManager, IEmailSender emailSender, IMemoryCache cache, ILogger<AccountController> logger)
+    public AccountController(
+    UserManager<ApplicationUser> userManager,
+    IEmailSender emailSender,
+    IConnectionMultiplexer connectionMultiplexer,
+    ILogger<AccountController> logger)
     {
         _userManager = userManager;
         _emailSender = emailSender;
-        _cache = cache;
+        _connectionMultiplexer = connectionMultiplexer;
         _logger = logger;
     }
+
+    private IDatabase _redis => _connectionMultiplexer.GetDatabase();
 
     [HttpGet("me")]
     [Authorize]
@@ -70,7 +78,7 @@ public class AccountController : ControllerBase
 
         var otp = GenerateOtp();
         var cacheKey = $"RESET_OTP_{normalizedEmail}";
-        _cache.Set(cacheKey, otp, TimeSpan.FromMinutes(5));
+        await _redis.StringSetAsync(cacheKey, otp, TimeSpan.FromMinutes(5));
 
         _logger.LogInformation("✅ OTP {Otp} generated for email {Email}", otp, model.Email);
 
@@ -107,14 +115,15 @@ public class AccountController : ControllerBase
 
         var user = await _userManager.FindByEmailAsync(normalizedEmail);
         if (user == null) return BadRequest("Recheck your email");
-        if (!_cache.TryGetValue(cacheKey, out string storedOtp) || storedOtp != model.Otp)
+        var storedOtp = await _redis.StringGetAsync(cacheKey);
+        if (storedOtp != model.Otp)
             return BadRequest("Invalid or expired OTP.");
 
         var token = await _userManager.GeneratePasswordResetTokenAsync(user);
         var result = await _userManager.ResetPasswordAsync(user, token, model.NewPassword);
         if (!result.Succeeded) return BadRequest(result.Errors);
 
-        _cache.Remove(cacheKey);
+        await _redis.KeyDeleteAsync(cacheKey);
         return Ok("Password has been reset successfully.");
     }
 
@@ -143,7 +152,7 @@ public class AccountController : ControllerBase
 
         var otp = GenerateOtp();
         var cacheKey = $"EMAIL_OTP_{model.Email.Trim().ToLower()}";
-        _cache.Set(cacheKey, otp, TimeSpan.FromMinutes(5));
+        await _redis.StringSetAsync(cacheKey, otp, TimeSpan.FromMinutes(5));
 
         string emailBody = $@"
         <div style='font-family: Arial, sans-serif; padding: 10px; border: 1px solid #ddd; background: #f9f9f9;'>
@@ -172,15 +181,17 @@ public class AccountController : ControllerBase
         var user = await _userManager.FindByEmailAsync(model.Email);
         if (user == null) return BadRequest(new { message = "User not found." });
         var cacheKey = $"EMAIL_OTP_{model.Email.Trim().ToLower()}";
-        if (!_cache.TryGetValue(cacheKey, out string storedOtp) || storedOtp != model.Otp)
-            return BadRequest(new { message = "Invalid or expired OTP." });
+        var storedOtp = await _redis.StringGetAsync(cacheKey);
+        if (storedOtp != model.Otp)
+            return BadRequest("Invalid or expired OTP.");
+
 
 
         user.EmailConfirmed = true;
         var result = await _userManager.UpdateAsync(user);
         if (!result.Succeeded) return BadRequest(result.Errors);
 
-        _cache.Remove(cacheKey);
+        await _redis.KeyDeleteAsync(cacheKey);
         return Ok(new { message = "Email verified successfully." });
     }
     [HttpPatch("profile")]

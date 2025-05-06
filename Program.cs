@@ -1,3 +1,5 @@
+﻿using NRedisStack;
+using NRedisStack.RedisStackCommands;
 using GeminiTest.Data;
 using GeminiTest.Models;
 using GeminiTest.Services;
@@ -10,6 +12,8 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging; 
 using static GeminiController;
 using System.Text.Json.Serialization;
+using StackExchange.Redis;
+using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -38,6 +42,24 @@ builder.Services.AddSwaggerGen(options =>
     });
     options.OperationFilter<SecurityRequirementsOperationFilter>();
 });
+var redisConfig = new ConfigurationOptions
+{
+    EndPoints = { { "redis-18648.c292.ap-southeast-1-1.ec2.redns.redis-cloud.com", 18648 } },
+    User = "default",
+    Password = "pMXtS7bNqLw4Ft6nibKMxddrc6oXlwDf"
+};
+
+builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
+{
+    var logger = sp.GetRequiredService<ILoggerFactory>().CreateLogger("Redis");
+    var connection = ConnectionMultiplexer.Connect(redisConfig);
+    connection.ConnectionFailed += (sender, args) => logger.LogError("Redis connection failed: {0}", args.Exception.Message);
+    connection.ConnectionRestored += (sender, args) => logger.LogInformation("Redis connection restored.");
+    return connection;
+});
+builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
+    ConnectionMultiplexer.Connect(redisConfig));
+
 builder.Services.AddMemoryCache();
 builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();
 builder.Services.AddScoped<IPromptService, PromptService>();
@@ -66,6 +88,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 app.MapIdentityApi<ApplicationUser>();
+app.UseRouting();
+
 // ? Apply CORS Policy BEFORE Controllers
 app.UseCors("AllowFrontend");
 

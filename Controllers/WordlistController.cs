@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Runtime.Intrinsics.X86;
 using System.Security.Claims;
 using System.Text;
 
@@ -283,6 +284,73 @@ namespace GeminiTest.Controllers
                 return StatusCode(500, new { message = "An error occurred while deleting the word.", error = ex.Message });
             }
         }
+        [HttpGet("review-today")]
+        [Authorize]
+        public async Task<IActionResult> GetWordsToReviewToday([FromQuery] int take = 20)
+        {
+            try
+            {
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value?.Trim();
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Unauthorized(new { message = "User not authenticated" });
+                }
+
+                var today = DateTime.UtcNow.Date;
+
+                var reviewWords = await _context.Words
+                    .Where(w => w.Wordlist.UserId == userId && w.NextReviewDate <= today)
+                    .OrderBy(w => w.NextReviewDate)
+                    .Take(take)
+                    .Select(w => new
+                    {
+                        w.Id,
+                        w.WordText,
+                        w.NextReviewDate,
+                        w.FluencyValue,
+                        w.EnglishMeaning,
+                        w.VietnameseMeaning,
+                        w.PartOfSpeech,
+                        w.ExampleSentence
+                    })
+                    .ToListAsync();
+
+                return Ok(reviewWords);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An error occurred while fetching words to review.", error = ex.Message });
+            }
+        }
+
+        [Authorize]
+        [HttpPost("update-review-status")]
+        public async Task<IActionResult> UpdateReviewStatus([FromBody] ReviewUpdateDto dto)
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value?.Trim();
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized(new { message = "User not authenticated" });
+            }
+            var word = await _context.Words
+                .FirstOrDefaultAsync(w => w.Id == dto.WordId &&  w.Wordlist.UserId == userId);
+
+            if (word == null)
+                return NotFound("Word not found.");
+
+            if (dto.SkipReview)
+            {
+                word.NextReviewDate = DateTime.MaxValue;
+                word.LastReviewDate = DateTime.UtcNow.Date;
+            }
+            else
+            {
+                UpdateSpacedRepetition(word, dto.IsCorrect);
+            }
+
+            await _context.SaveChangesAsync();
+            return Ok();
+        }
 
         [HttpGet("user-word-summary")]
         [Authorize]
@@ -311,6 +379,33 @@ namespace GeminiTest.Controllers
             return Ok(summary);
         }
 
+        private void UpdateSpacedRepetition(Word word, bool isCorrect)
+        {
+            DateTime today = DateTime.UtcNow.Date;
+
+            // ✅ Allow first-time updates regardless of date
+            if (word.LastReviewDate == DateTime.MinValue || word.LastReviewDate.Date != today)
+            {
+                if (isCorrect)
+                {
+                    word.CorrectStreak++;
+                }
+                else
+                {
+                    word.CorrectStreak = 0;
+                }
+
+                int[] reviewIntervals = { 1, 3, 7, 14, 30 };
+                int index = Math.Min(word.CorrectStreak, reviewIntervals.Length - 1);
+                word.NextReviewDate = today.AddDays(reviewIntervals[index]);
+                word.LastReviewDate = today;
+                if (word.CorrectStreak >= 4) word.FluencyValue = (int)FluencyLevel.Mastered;
+                else if (word.CorrectStreak >= 3) word.FluencyValue = (int)FluencyLevel.Advanced;
+                else if (word.CorrectStreak >= 2) word.FluencyValue = (int)FluencyLevel.Proficient;
+                else if (word.CorrectStreak >= 1) word.FluencyValue = (int)FluencyLevel.Familiar;
+                else word.FluencyValue = (int)FluencyLevel.Beginner;
+            }
+        }
 
     }
     public class WordSummaryDto
@@ -322,5 +417,12 @@ namespace GeminiTest.Controllers
         public int AdvancedCount { get; set; }
         public int MasteredCount { get; set; }
     }
+    public class ReviewUpdateDto
+    {
+        public int WordId { get; set; }
+        public bool IsCorrect { get; set; }
+        public bool SkipReview { get; set; }
+    }
+
 
 }
