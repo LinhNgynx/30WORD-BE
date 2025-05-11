@@ -5,6 +5,7 @@ using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using GeminiTest.Setting;
 
 namespace GeminiTest.Controllers
 {
@@ -19,7 +20,7 @@ namespace GeminiTest.Controllers
         public GenerateWordController(IHttpClientFactory httpClientFactory, IOptions<GeminiSettings> geminiSettings, ILogger<GenerateWordController> logger)
         {
             _httpClientFactory = httpClientFactory;
-            _apiKey = geminiSettings.Value.ApiKey;
+            _apiKey = geminiSettings.Value.ApiKeyWord;
             _logger = logger;
             if (string.IsNullOrEmpty(_apiKey))
             {

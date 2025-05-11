@@ -7,6 +7,7 @@ using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using GeminiTest.Setting;
 
 namespace GeminiTest.Controllers
 {
@@ -23,7 +24,7 @@ namespace GeminiTest.Controllers
         {
             _userManager = userManager;
             _httpClientFactory = httpClientFactory;
-            _apiKey = geminiSettings.Value.ApiKey;
+            _apiKey = geminiSettings.Value.ApiKeyQuiz;
             _logger = logger;
         }
         [HttpPost("generate/Meaning")]

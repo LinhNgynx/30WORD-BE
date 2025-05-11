@@ -14,11 +14,14 @@ using static GeminiController;
 using System.Text.Json.Serialization;
 using StackExchange.Redis;
 using Microsoft.Extensions.Options;
+using GeminiTest.Setting;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // ? Load configuration for Gemini API
 builder.Services.Configure<GeminiSettings>(builder.Configuration.GetSection("GeminiSettings"));
+builder.Services.Configure<RedisSetting>(
+    builder.Configuration.GetSection("Redis"));
 
 builder.Logging.ClearProviders(); // Clear default logging providers
 builder.Logging.AddConsole(); // Add Console logging
@@ -42,23 +45,28 @@ builder.Services.AddSwaggerGen(options =>
     });
     options.OperationFilter<SecurityRequirementsOperationFilter>();
 });
-var redisConfig = new ConfigurationOptions
-{
-    EndPoints = { { "redis-18648.c292.ap-southeast-1-1.ec2.redns.redis-cloud.com", 18648 } },
-    User = "default",
-    Password = "pMXtS7bNqLw4Ft6nibKMxddrc6oXlwDf"
-};
-
 builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
 {
+    // Lấy cấu hình Redis từ IOptions
+    var redisSetting = sp.GetRequiredService<IOptions<RedisSetting>>().Value;
+
+    // Cấu hình Redis
+    var redisConfig = new ConfigurationOptions
+    {
+        EndPoints = { { redisSetting.Host, redisSetting.Port } },
+        User = redisSetting.User,
+        Password = redisSetting.Password
+    };
+
+    // Kết nối Redis và xử lý sự kiện lỗi
     var logger = sp.GetRequiredService<ILoggerFactory>().CreateLogger("Redis");
     var connection = ConnectionMultiplexer.Connect(redisConfig);
+
     connection.ConnectionFailed += (sender, args) => logger.LogError("Redis connection failed: {0}", args.Exception.Message);
     connection.ConnectionRestored += (sender, args) => logger.LogInformation("Redis connection restored.");
+
     return connection;
 });
-builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
-    ConnectionMultiplexer.Connect(redisConfig));
 
 builder.Services.AddMemoryCache();
 builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();

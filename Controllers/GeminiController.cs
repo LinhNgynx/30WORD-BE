@@ -4,6 +4,7 @@ using Microsoft.Extensions.Options;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using GeminiTest.Setting;
 
 
 [Route("api/gemini")]
@@ -17,7 +18,7 @@ public class GeminiController : ControllerBase
     public GeminiController(IHttpClientFactory httpClientFactory, IOptions<GeminiSettings> geminiSettings, ILogger<GeminiController> logger)
     {
         _httpClientFactory = httpClientFactory;
-        _apiKey = geminiSettings.Value.ApiKey;
+        _apiKey = geminiSettings.Value.ApiKeyTranslate;
         _logger = logger;
     }
    
@@ -227,9 +228,3 @@ public class MeaningItem
 
 
 
-
-// Strongly typed settings for Gemini API
-public class GeminiSettings
-{
-    public string ApiKey { get; set; }
-}
