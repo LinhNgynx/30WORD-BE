@@ -20,6 +20,9 @@ var builder = WebApplication.CreateBuilder(args);
 
 // ? Load configuration for Gemini API
 builder.Services.Configure<GeminiSettings>(builder.Configuration.GetSection("GeminiSettings"));
+builder.Services.Configure<EmailSettings>(
+    builder.Configuration.GetSection("EmailSettings"));
+
 builder.Services.Configure<RedisSetting>(
     builder.Configuration.GetSection("Redis"));
 

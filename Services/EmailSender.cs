@@ -2,19 +2,21 @@
 using System.Net;
 using System.Net.Mail;
 using System.Threading.Tasks;
+using GeminiTest.Setting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace GeminiTest.Services
 {
     public class SmtpEmailSender : IEmailSender
     {
-        private readonly IConfiguration _configuration;
+        private readonly EmailSettings _emailSettings;
         private readonly ILogger<SmtpEmailSender> _logger;
 
-        public SmtpEmailSender(IConfiguration configuration, ILogger<SmtpEmailSender> logger)
+        public SmtpEmailSender(IOptions<EmailSettings> options, ILogger<SmtpEmailSender> logger)
         {
-            _configuration = configuration;
+            _emailSettings = options.Value;
             _logger = logger;
         }
 
@@ -22,20 +24,17 @@ namespace GeminiTest.Services
         {
             try
             {
-                using var smtpClient = new SmtpClient(_configuration["EmailSettings:SmtpServer"])
+                using var smtpClient = new SmtpClient(_emailSettings.SmtpServer)
                 {
-                    Port = int.Parse(_configuration["EmailSettings:Port"]),
-                    Credentials = new NetworkCredential(
-                        _configuration["EmailSettings:Username"],
-                        _configuration["EmailSettings:Password"]
-                    ),
+                    Port = _emailSettings.Port,
+                    Credentials = new NetworkCredential(_emailSettings.Username, _emailSettings.Password),
                     EnableSsl = true,
                     UseDefaultCredentials = false
                 };
 
                 var mailMessage = new MailMessage
                 {
-                    From = new MailAddress(_configuration["EmailSettings:FromEmail"], _configuration["EmailSettings:FromName"]),
+                    From = new MailAddress(_emailSettings.FromEmail, _emailSettings.FromName),
                     Subject = subject,
                     Body = htmlMessage,
                     IsBodyHtml = true,
